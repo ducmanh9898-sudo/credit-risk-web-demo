@@ -65,10 +65,11 @@ Frontend (Giao diện web/form nhập liệu) **chỉ cần thu thập 11 trư�
  ┃   ┣ 📜 preprocessor_standard.pkl # Bộ dịch thuật dữ liệu (BẮT BUỘC cho XGBoost)
  ┃   ┗ 📜 preprocessor_native.pkl   # Bộ dịch thuật dữ liệu (BẮT BUỘC cho CatBoost)
  ┃
- ┣ 📂 quantum/                      # KHÔNG GIAN LAI LƯỢNG TỬ (Định hướng tương lai)
- ┃ ┣ 📂 data/                       # (Hiện tại để trống)
- ┃ ┣ 📂 notebooks/                  # (Hiện tại để trống)
- ┃ ┗ 📂 models/                     # (Hiện tại để trống)
+ ┣ 📂 quantum/                      # 🔬 KHÔNG GIAN NGHIÊN CỨU LƯỢNG TỬ (Innovation Point)
+ ┃ ┣ 📜 README.md                   # Báo cáo Khoa học chi tiết về Sức mạnh Lượng tử
+ ┃ ┣ 📂 notebooks/                  # Các Notebook thực nghiệm (Siêu mô hình Lai)
+ ┃ ┣ 📂 qcnn_feature_extractor/     # Trọng số của Mạch trích xuất Đặc trưng Lượng tử
+ ┃ ┗ 📂 quantum-classic - analysis/ # Dashboard so sánh hiệu năng và file Excel số liệu
  ┃
  ┣ 📜 inference.py                  # Script chứa hàm tính toán & tiền xử lý tự động
  ┣ 📜 main.py                       # File chạy Server API (VD: FastAPI)
