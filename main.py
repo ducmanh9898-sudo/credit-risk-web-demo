@@ -1,37 +1,68 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import joblib
-import xgboost as xgb
 from catboost import CatBoostClassifier
-from inference import preprocess_and_predict 
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
-app = FastAPI(title="Hệ thống Chấm điểm Tín dụng AI")
+from inference import preprocess_and_predict
+
+
+app = FastAPI(
+    title="AI Credit Risk Demo",
+    description="Demo hệ thống đánh giá rủi ro khoản vay bằng XGBoost và CatBoost",
+    version="1.0.0"
+)
+app.mount(
+    "/static",
+    StaticFiles(directory="static"),
+    name="static"
+)
+@app.get("/", include_in_schema=False)
+def home():
+    return FileResponse("templates/index.html")
+
 
 # ==========================================
-# 1. TẢI SẴN TẤT CẢ MÔ HÌNH VÀO RAM LÚC KHỞI ĐỘNG
+# 1. LOAD MODEL MỘT LẦN KHI SERVER KHỞI ĐỘNG
 # ==========================================
+
 print("⏳ Đang tải các mô hình AI vào bộ nhớ...")
 
-# Lõi SAFE (XGBoost)
-preprocessor_safe = joblib.load("classic/models/preprocessor_standard.pkl")
-model_safe = joblib.load("classic/models/XGBoost_model.pkl")
+
+# XGBoost - SAFE Strategy
+preprocessor_safe = joblib.load(
+    "classic/models/preprocessor_standard.pkl"
+)
+
+model_safe = joblib.load(
+    "classic/models/XGBoost_model.pkl"
+)
+
 THRESHOLD_SAFE = 0.5541
 
-# Lõi SWEEP (CatBoost)
-preprocessor_sweep = joblib.load("classic/models/preprocessor_native.pkl")
+
+# CatBoost - SWEEP Strategy
+preprocessor_sweep = joblib.load(
+    "classic/models/preprocessor_native.pkl"
+)
+
 model_sweep = CatBoostClassifier()
-model_sweep.load_model("classic/models/CatBoost_model.cbm")
+
+model_sweep.load_model(
+    "classic/models/CatBoost_model.cbm"
+)
+
 THRESHOLD_SWEEP = 0.3453
+
 
 print("✅ Tải mô hình hoàn tất!")
 
-# Biến Toàn cục (Global Variable) lưu trữ chiến lược hiện tại đang vận hành
-CURRENT_STRATEGY = "SAFE" 
-
 
 # ==========================================
-# 2. CẤU TRÚC DỮ LIỆU FRONTEND
+# 2. CẤU TRÚC DỮ LIỆU KHÁCH HÀNG
 # ==========================================
+
 class CustomerFlow(BaseModel):
     person_age: float
     person_income: float
@@ -45,48 +76,49 @@ class CustomerFlow(BaseModel):
     loan_grade: str
     cb_person_default_on_file: str
 
-class StrategyUpdate(BaseModel):
-    strategy: str  # Gửi lên "SAFE" hoặc "SWEEP"
-
 
 # ==========================================
-# 3. CÁC API ENDPOINTS
+# 3. HEALTH CHECK
 # ==========================================
 
-@app.post("/api/admin/set_strategy", tags=["Admin Operations"])
-def admin_set_strategy(payload: StrategyUpdate):
-    """
-    API DÀNH CHO ADMIN: Thay đổi chiến lược kinh doanh theo thời gian thực (Không cần Restart).
-    """
-    global CURRENT_STRATEGY
-    new_strategy = payload.strategy.upper()
-    
-    if new_strategy not in ["SAFE", "SWEEP"]:
-        raise HTTPException(status_code=400, detail="Chiến lược không hợp lệ. Chỉ chấp nhận 'SAFE' hoặc 'SWEEP'.")
-    
-    CURRENT_STRATEGY = new_strategy
+@app.get("/api/health", tags=["System"])
+def health_check():
+
     return {
-        "status_code": 200,
-        "message": f"Thành công! Hệ thống hiện đang chạy với chiến lược: {CURRENT_STRATEGY}"
+        "status": "ok",
+        "message": "Credit Risk AI API is running",
+        "models": [
+            "XGBoost",
+            "CatBoost"
+        ]
     }
 
-@app.get("/api/admin/get_strategy", tags=["Admin Operations"])
-def admin_get_strategy():
-    """
-    API DÀNH CHO ADMIN: Xem chiến lược nào đang được kích hoạt.
-    """
-    return {"current_strategy": CURRENT_STRATEGY}
+
+# ==========================================
+# 4. PREDICT
+# ==========================================
+
+@app.post(
+    "/api/predict/{model_name}",
+    tags=["Core AI Operations"]
+)
+def predict_credit_risk(
+    model_name: str,
+    customer: CustomerFlow
+):
+
+    model_name = model_name.lower()
+
+    # Chuyển dữ liệu Pydantic thành dictionary
+    raw_data_dict = customer.model_dump()
 
 
-@app.post("/api/predict_risk", tags=["Core AI Operations"])
-def predict_credit_risk(customer: CustomerFlow):
-    """
-    API DÀNH CHO NGƯỜI DÙNG: Tính toán rủi ro tự động dựa vào chiến lược Admin đã chọn.
-    """
-    raw_data_dict = customer.dict()
-    
-    # Bẻ nhánh luồng xử lý tùy theo biến CURRENT_STRATEGY
-    if CURRENT_STRATEGY == "SAFE":
+    # ======================================
+    # XGBOOST
+    # ======================================
+
+    if model_name == "xgboost":
+
         prediction, probability = preprocess_and_predict(
             raw_data_dict=raw_data_dict,
             model=model_safe,
@@ -94,7 +126,18 @@ def predict_credit_risk(customer: CustomerFlow):
             model_type="xgboost",
             threshold=THRESHOLD_SAFE
         )
-    else:  # Chiến lược SWEEP
+
+        strategy = "SAFE"
+        threshold = THRESHOLD_SAFE
+        display_model = "XGBoost"
+
+
+    # ======================================
+    # CATBOOST
+    # ======================================
+
+    elif model_name == "catboost":
+
         prediction, probability = preprocess_and_predict(
             raw_data_dict=raw_data_dict,
             model=model_sweep,
@@ -102,12 +145,52 @@ def predict_credit_risk(customer: CustomerFlow):
             model_type="catboost",
             threshold=THRESHOLD_SWEEP
         )
-    
-    # Trả kết quả về
+
+        strategy = "SWEEP"
+        threshold = THRESHOLD_SWEEP
+        display_model = "CatBoost"
+
+
+    # ======================================
+    # MODEL KHÔNG HỢP LỆ
+    # ======================================
+
+    else:
+
+        raise HTTPException(
+            status_code=400,
+            detail="Model không hợp lệ. Chỉ chấp nhận 'xgboost' hoặc 'catboost'."
+        )
+
+
+    # ======================================
+    # RESPONSE
+    # ======================================
+
+    risk_probability = round(probability * 100, 2)
+
     return {
         "status_code": 200,
-        "business_strategy_applied": CURRENT_STRATEGY,
-        "threat_probability": round(probability * 100, 2),
+
+        "model": display_model,
+
+        "strategy": strategy,
+
+        "risk_probability": risk_probability,
+
+        "threshold": round(threshold * 100, 2),
+
         "is_bad_loan": bool(prediction),
-        "recommendation": "Cảnh báo Rủi ro / Chuyển duyệt thủ công" if prediction == 1 else "Hồ sơ An toàn / Đủ điều kiện duyệt"
+
+        "risk_level": (
+            "HIGH"
+            if prediction == 1
+            else "LOW"
+        ),
+
+        "recommendation": (
+            "Manual Review Recommended"
+            if prediction == 1
+            else "Eligible for Further Approval Consideration"
+        )
     }

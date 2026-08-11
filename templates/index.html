@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>AI Credit Risk Demo</title>
+
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+
+    <div class="container">
+
+        <header>
+            <h1>AI Credit Risk Demo</h1>
+            <p>Machine Learning Loan Risk Assessment</p>
+        </header>
+
+        <section class="card">
+
+            <h2>1. Chọn Model</h2>
+
+            <div class="model-grid">
+
+                <label class="model-card">
+                    <input
+                        type="radio"
+                        name="model"
+                        value="xgboost"
+                        checked
+                    >
+
+                    <h3>XGBoost</h3>
+
+                    <span class="badge">
+                        SAFE Strategy
+                    </span>
+
+                    <p>
+                        Ưu tiên Precision, phù hợp với chiến lược đánh giá thận trọng.
+                    </p>
+
+                    <strong>Threshold: 55.41%</strong>
+                </label>
+
+
+                <label class="model-card">
+                    <input
+                        type="radio"
+                        name="model"
+                        value="catboost"
+                    >
+
+                    <h3>CatBoost</h3>
+
+                    <span class="badge">
+                        SWEEP Strategy
+                    </span>
+
+                    <p>
+                        Ưu tiên Recall, giúp phát hiện nhiều hồ sơ có khả năng rủi ro.
+                    </p>
+
+                    <strong>Threshold: 34.53%</strong>
+                </label>
+
+            </div>
+
+        </section>
+
+
+        <section class="card">
+
+            <h2>2. Thông tin khách hàng</h2>
+
+            <form id="loanForm">
+
+                <div class="form-grid">
+
+                    <div class="form-group">
+                        <label>Tuổi</label>
+
+                        <input
+                            type="number"
+                            id="person_age"
+                            value="25"
+                            required
+                        >
+                    </div>
+
+
+                    <div class="form-group">
+                        <label>Thu nhập hàng năm</label>
+
+                        <input
+                            type="number"
+                            id="person_income"
+                            value="50000"
+                            required
+                        >
+                    </div>
+
+
+                    <div class="form-group">
+                        <label>Số năm làm việc</label>
+
+                        <input
+                            type="number"
+                            id="person_emp_length"
+                            value="3"
+                            required
+                        >
+                    </div>
+
+
+                    <div class="form-group">
+                        <label>Lịch sử tín dụng (năm)</label>
+
+                        <input
+                            type="number"
+                            id="cb_person_cred_hist_length"
+                            value="4"
+                            required
+                        >
+                    </div>
+
+
+                    <div class="form-group">
+                        <label>Hình thức sở hữu nhà</label>
+
+                        <select id="person_home_ownership">
+
+                            <option value="RENT">
+                                RENT
+                            </option>
+
+                            <option value="MORTGAGE">
+                                MORTGAGE
+                            </option>
+
+                            <option value="OWN">
+                                OWN
+                            </option>
+
+                            <option value="OTHER">
+                                OTHER
+                            </option>
+
+                        </select>
+                    </div>
+
+                </div>
+
+
+                <h2>3. Thông tin khoản vay</h2>
+
+
+                <div class="form-grid">
+
+                    <div class="form-group">
+
+                        <label>Số tiền vay</label>
+
+                        <input
+                            type="number"
+                            id="loan_amnt"
+                            value="15000"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label>Lãi suất (%)</label>
+
+                        <input
+                            type="number"
+                            step="0.01"
+                            id="loan_int_rate"
+                            value="10.5"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label>Tỷ lệ khoản vay / thu nhập</label>
+
+                        <input
+                            type="number"
+                            step="0.01"
+                            id="loan_percent_income"
+                            value="0.3"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label>Mục đích vay</label>
+
+                        <select id="loan_intent">
+
+                            <option value="EDUCATION">
+                                EDUCATION
+                            </option>
+
+                            <option value="MEDICAL">
+                                MEDICAL
+                            </option>
+
+                            <option value="PERSONAL">
+                                PERSONAL
+                            </option>
+
+                            <option value="VENTURE">
+                                VENTURE
+                            </option>
+
+                            <option value="HOMEIMPROVEMENT">
+                                HOME IMPROVEMENT
+                            </option>
+
+                            <option value="DEBTCONSOLIDATION">
+                                DEBT CONSOLIDATION
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label>Loan Grade</label>
+
+                        <select id="loan_grade">
+
+                            <option>A</option>
+                            <option selected>B</option>
+                            <option>C</option>
+                            <option>D</option>
+                            <option>E</option>
+                            <option>F</option>
+                            <option>G</option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label>Đã từng default?</label>
+
+                        <select id="cb_person_default_on_file">
+
+                            <option value="N">
+                                No
+                            </option>
+
+                            <option value="Y">
+                                Yes
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+
+                <button
+                    type="submit"
+                    id="predictBtn"
+                    class="primary-btn"
+                >
+                    Analyze Loan Risk
+                </button>
+
+            </form>
+
+        </section>
+
+
+        <section
+            id="resultSection"
+            class="card result hidden"
+        >
+
+            <h2>Kết quả đánh giá</h2>
+
+            <div
+                id="riskBadge"
+                class="risk-badge"
+            >
+                LOW RISK
+            </div>
+
+
+            <div class="probability">
+
+                <span>
+                    Risk Probability
+                </span>
+
+                <strong id="riskProbability">
+                    0%
+                </strong>
+
+            </div>
+
+
+            <div class="progress">
+
+                <div
+                    id="riskProgress"
+                    class="progress-bar"
+                >
+                </div>
+
+            </div>
+
+
+            <div class="result-grid">
+
+                <div>
+                    <span>Model</span>
+                    <strong id="resultModel">-</strong>
+                </div>
+
+                <div>
+                    <span>Strategy</span>
+                    <strong id="resultStrategy">-</strong>
+                </div>
+
+                <div>
+                    <span>Threshold</span>
+                    <strong id="resultThreshold">-</strong>
+                </div>
+
+            </div>
+
+
+            <p
+                id="recommendation"
+                class="recommendation"
+            >
+            </p>
+
+        </section>
+
+    </div>
+
+
+    <script src="/static/app.js"></script>
+
+</body>
+</html>
